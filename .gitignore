@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Assembled tests
+*.hex
+
+# Apple stuff
+.DS_Store
