@@ -4,6 +4,7 @@
     MOV     r7,     r3
     MOV     R0,     0x828
     MOV     r1      -34
+    mov r1 r0
 loop_1:loop_2: loop_3:
     mov     r2,     flags
     mov     r3      flags
@@ -15,16 +16,21 @@ loop_1:loop_2: loop_3:
     LDR     r1,     [ r5,       r6 ]
     LDR     r1,     r5,       r6 
     LDR     r1      r5        r6 
+    ldr r1[r5]
+    ldr r1[r5,r6]
     STR     r1,     [ r5 ]
     STR     r1,     r5 
     STR     r1      r5        
     STR     r1,     [ r5,       r6 ]
     STR     r1,     r5,       r6 
     STR     r1      r5        r6 
+    str r1[r5]
+    str r1[r5,r6]
     ADD     r1,     r2,     r3
     ADD     r2,     r3      r4
     ADD     r3      r4,     r5
     ADD     r4      r5      r6
+    add r5,r6,r7
     SUB     r1,     r2,     r3
     SUB     r2,     r3      r4
     SUB     r3      r4,     r5
@@ -60,7 +66,8 @@ loop_1:loop_2: loop_3:
     NOT     r1,     r2
     NOT     r2,     r3  
     NOT     r3      r4
-    NOT     r7      r7  
+    NOT     r7      r7
+    not r6,r7  
     LSL     r1,     r2,     r3
     LSL     r2,     r3      r4
     LSL     r3      r4,     r5
@@ -88,4 +95,7 @@ a:  ASR     r1,     r2,     r3
     B       0b110
     b       a
     BEQ     0x003
+    b       0x800
+    b       0b100000000000
+    b 1
 end:BNE eNd
