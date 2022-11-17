@@ -27,3 +27,10 @@ Flag    Description
 Notes
 ==========
 - To load or store the ALU flags with the ``MOV`` instruction, you can reference ``Flags`` explicitly as an operand. For example, use ``MOV R0, Flags`` to load ``Flags`` into ``R0`` and use ``MOV Flags, R0`` to store ``R0`` into the ``Flags``. 
+
+Tests
+==========
+Includes two test files: 
+
+- ``testinsts.s`` which includes every instruction in every format in order to ensure proper encoding.
+- ``testerrors.s`` which should initiate an error on every line of the program, so it starts entirely commented in order to test for specific errors.
