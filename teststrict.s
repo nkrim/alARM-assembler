@@ -5,7 +5,7 @@
 loop_1:loop_2: loop_3:
     mov     r2,     flags
     MOV     FLAGS,  r4
-    LDR     r1     [ r5 ]     
+    LDR     r1,     [ r5 ]     
     LDR     r1,     [ r5,       r6 ]
     ldr r1,[r5]
     ldr r1,[r5,r6]
