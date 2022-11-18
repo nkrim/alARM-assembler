@@ -83,6 +83,7 @@ enum I_FMT {
 };
 
 enum OPR_WIDTH {
+    NON=0,
     REG=3,
     IMM=12
 };
@@ -142,6 +143,7 @@ struct prog_s {
     vector<label_s>     labels;
     vector<unsigned>    debug_line_nums;
     vector<mword_t>     mcode;
+    vector<inst_tokens_t> insts_raw;
 };
 
 
@@ -155,8 +157,8 @@ const array<fmt_config_t, FMT_LEN> FMT_CONFIG = {{
     { {1*REG,REG}, {2*REG,REG}, {0,REG} },  // R3-Type
     { {0,IMM} },                            // B-Type
     { {1*IMM,REG}, {0,IMM} },               // I-Type
-    { {1*REG,REG} },                        // FL-Type
-    { {1*REG,REG} },                        // FS-Type
+    { {1*REG,REG}, {0,NON} },               // FL-Type
+    { {0,NON},     {1*REG,REG} },           // FS-Type
     { {1*REG,REG}, {2*REG,REG} },           // LS-Type
     { {1*REG,REG}, {2*REG,REG}, {0,REG} },  // LSO-Type
 }};
@@ -235,9 +237,9 @@ const array<regex,FMT_LEN> FMT_REGEX = {{
     // I_TYPE
     regex("^(R\\d+)(?:\\s+|\\s*,\\s*)([-\\w]+)\\s*$", regex::icase), 
     // FL_TYPE
-    regex("^(R\\d+)(?:\\s+|\\s*,\\s*)FLAGS\\s*$", regex::icase),
+    regex("^(R\\d+)(?:\\s+|\\s*,\\s*)(FLAGS)\\s*$", regex::icase),
     // FS_TYPE 
-    regex("^FLAGS(?:\\s+|\\s*,\\s*)(R\\d+)\\s*$", regex::icase), 
+    regex("^(FLAGS)(?:\\s+|\\s*,\\s*)(R\\d+)\\s*$", regex::icase), 
     // LS_TYPE
     regex(string("^(R\\d+)(?:\\s*,\\s*\\[?|\\s*\\[|\\s)\\s*(R\\d+)")
         + string("\\s*\\]?\\s*$"), regex::icase),
@@ -260,9 +262,9 @@ const array<regex,FMT_LEN> FMT_REGEX_STRICT = {{
     // I_TYPE
     regex("^(R\\d+)\\s*,\\s*(\\w+)$", regex::icase), 
     // FL_TYPE
-    regex("^(R\\d+)\\s*,\\s*FLAGS$", regex::icase),
+    regex("^(R\\d+)\\s*,\\s*(FLAGS)$", regex::icase),
     // FS_TYPE 
-    regex("^FLAGS\\s*,\\s*(R\\d+)$", regex::icase), 
+    regex("^(FLAGS)\\s*,\\s*(R\\d+)$", regex::icase), 
     // LS_TYPE
     regex("^(R\\d+)\\s*,\\s*\\[\\s*(R\\d+)\\s*\\]$", regex::icase), 
     // LSO_TYPE
@@ -275,8 +277,8 @@ const array<vector<const char*>,FMT_LEN> FMT_EXPECTED = {{
     { " Rd" },              // R1_TYPE
     { " Rd, Rn" },          // R2_TYPE
     { " Rd, Rn, Rm" },      // R3_TYPE
-    { " Imm", " Label" }, // B_TYPE
-    { " Rd, Imm" },       // I_TYPE
+    { " Imm", " Label" },   // B_TYPE
+    { " Rd, Imm" },         // I_TYPE
     { " Rd, Flags" },       // FL_TYPE
     { " Flags, Rd" },       // FS_TYPE 
     { " Rd, [Rn]" },        // LS_TYPE
@@ -470,12 +472,14 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
     // set up parsing vars
     // ---------------------------------------------------------------------
     string label_buf;
+    string label_raw_buf;
     string line_buf;
     string mne;
     string opr;
     smatch m;
     smatch opr_m;
     inst_tokens_t inst_buf;
+    inst_tokens_t inst_raw_buf;
     sregex_iterator reit_begin;
     sregex_iterator reit_end;
     OPCODE inst_opcode;
@@ -504,7 +508,8 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
             reit_begin = sregex_iterator(
                 labels.begin(), labels.end(), label_re);
             for(auto it=reit_begin; it!=reit_end; ++it) {
-                label_buf = str_to_upper((*it)[1].str());
+                label_raw_buf = (*it)[1].str();
+                label_buf = str_to_upper(label_raw_buf);
 
                 // error: empty label
                 if(label_buf.size() == 0) {
@@ -521,7 +526,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
                 if(!is_reserved_name(label_buf)) {
                     cerr << "Error: line[" << file_line << "]: "
                          << "illegal label name '"
-                         << label_buf << "', reserved by ISA:"
+                         << label_raw_buf << "', reserved by ISA:"
                          << endl;
                     line_error_marker(line_buf, 
                         m.position(1)+it->position(1), it->length());
@@ -532,7 +537,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
                 if(isdigit(label_buf[0])) {
                     cerr << "Error: line[" << file_line << "]: "
                          << "invalid label name '"
-                         << label_buf << "', can't start with a digit:"
+                         << label_raw_buf << "', can't start with a digit:"
                          << endl;
                     line_error_marker(line_buf, 
                         m.position(1)+it->position(1), it->length());
@@ -543,7 +548,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
                 if(prog.label_lookup.count(label_buf) != 0) {
                     cerr << "Error: line[" << file_line << "]: "
                          << "repeat instance of label '"
-                         << label_buf << "':"
+                         << label_raw_buf << "':"
                          << endl;
                     line_error_marker(line_buf, 
                         m.position(1)+it->position(1), it->length());
@@ -633,14 +638,18 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
             // extract tokenized operands from matched format
             // -------------------------------------------------------------
             inst_buf.clear();
-            inst_buf.push_back(mne);
+            inst_buf.push_back(mne_key);
+            inst_raw_buf.clear();
+            inst_raw_buf.push_back(mne);
             for(auto it=opr_m.begin()+1; it!=opr_m.end(); ++it) {
-                inst_buf.push_back(*it);
+                inst_buf.push_back(str_to_upper(*it));
+                inst_raw_buf.push_back(mne);
             }
 
             // push onto instruction list
             // -------------------------------------------------------------
             prog.insts.emplace_back(inst_opcode, inst_buf);
+            prog.insts_raw.push_back(inst_raw_buf);
             prog.debug_line_nums.push_back(file_line);
 
             // error: instruction overflow
@@ -681,6 +690,7 @@ bool encode_program(prog_s& prog) {
         // -----------------------------------------------------------------
         const OPCODE inst_opcode = prog.insts[i].first;
         inst_tokens_t& inst_toks = prog.insts[i].second;
+        const inst_tokens_t& inst_raw_toks = prog.insts_raw[i];
         const I_FMT inst_fmt = OPC_TO_FMT.at(inst_opcode);
         const fmt_config_t fmt_config = FMT_CONFIG[inst_fmt];
 
@@ -692,6 +702,7 @@ bool encode_program(prog_s& prog) {
         // -----------------------------------------------------------------
         for(unsigned o=0; o<fmt_config.size(); o++) {
             string& opr_str = inst_toks[1+o];
+            string opr_str_key = str_to_upper(opr_str);
             // encode operand based on OPR_WIDTH for given instruction
             auto opr_p = fmt_config[o].first;
             auto opr_w = fmt_config[o].second;
@@ -706,18 +717,19 @@ bool encode_program(prog_s& prog) {
                          << "', expected register between 'r0' and 'r"
                          << MAX_REG << "':" 
                          << endl;
-                    inst_error_marker(inst_toks, 1+o);
+                    inst_error_marker(inst_raw_toks, 1+o);
                     return false;
                 }
+                // replace token with caps version
+                // inst_toks[1+o] = opr_str_key;
             }
-            else { // opr_w == IMM
+            else if(opr_w == IMM) {
                 smatch num_m;
                 long long parsed = 0;
                 bool parse_success = false;
                 bool parse_decimal = false;
                 bool parse_label = false;
                 // try to find label and compute relative branch
-                string opr_str_key = str_to_upper(opr_str);
                 if(inst_fmt == B_TYPE 
                         && prog.label_lookup.count(opr_str_key) > 0) {
                     parse_success = true;
@@ -741,7 +753,7 @@ bool encode_program(prog_s& prog) {
                              << "', hex value has too many nibbles ("
                              << "max = " << IMM_NIBS << "):" 
                              << endl;
-                        inst_error_marker(inst_toks, 1+o);
+                        inst_error_marker(inst_raw_toks, 1+o);
                         return false;
                     }
                     // convert to negative
@@ -760,7 +772,7 @@ bool encode_program(prog_s& prog) {
                              << "', binary value has too many bits ("
                              << "max = " << IMM << "):" 
                              << endl;
-                        inst_error_marker(inst_toks, 1+o);
+                        inst_error_marker(inst_raw_toks, 1+o);
                         return false;
                     }
                     // convert to negative
@@ -778,7 +790,7 @@ bool encode_program(prog_s& prog) {
                          << (inst_opcode == MOVIM ? " or register" : "")
                          << ":" 
                          << endl;
-                    inst_error_marker(inst_toks, 1+o);
+                    inst_error_marker(inst_raw_toks, 1+o);
                     return false;
                 }
                 // error: out of bounds immediate
@@ -793,7 +805,7 @@ bool encode_program(prog_s& prog) {
                          << "immediate value out of range ["
                          << IMM_MIN << ", " << IMM_MAX << "]:"
                          << endl;
-                    inst_error_marker(inst_toks, 1+o);
+                    inst_error_marker(inst_raw_toks, 1+o);
                     return false;
                 }
 
@@ -804,6 +816,9 @@ bool encode_program(prog_s& prog) {
                 inst_toks[1+o] = "0x" + to_hex_string(opr_buf, IMM)
                     + " ; (" + to_string(parsed) 
                     + (parse_label ? (" -> " + opr_str_key) : "") + ")";
+            }
+            else { // opr_w == NON
+                opr_buf = 0;
             }
             // mask opr_buf for width (shouldn't be necessary, but stay safe)
             opr_buf &= WIDTH_TO_BITS(opr_w);
@@ -865,7 +880,7 @@ void print_program_listing(const prog_s& prog) {
         const I_FMT inst_fmt = OPC_TO_FMT.at(prog.insts[i].first);
         bool is_ls_type = inst_fmt == LS_TYPE || inst_fmt == LSO_TYPE;
         const inst_tokens_t& toks = prog.insts[i].second;
-        cerr << setw(4) << setiosflags(ios_base::left) << toks[0];
+        cerr << setw(4) << setiosflags(ios_base::left) << toks.at(0);
         for(unsigned t=1; t<toks.size(); t++) {
             if(t > 1)
                 cerr << ',';
@@ -889,7 +904,7 @@ bool encode_register(const string& str, mword_t& buf) {
         return false;
     buf = str[1] - '0';
     // check for out of bounds register value
-    //   negatives will overflow
+    //   negatives will overflow so no need to check `< 0`
     if(buf > MAX_REG)
         return false;
     return true;
