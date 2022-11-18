@@ -34,3 +34,54 @@ Includes two test files:
 
 - ``testinsts.s`` which includes every instruction in every format in order to ensure proper encoding.
 - ``testerrors.s`` which should initiate an error on every line of the program, so it starts entirely commented in order to test for specific errors.
+
+Examples
+==========
+.. code-block:: console
+
+  > ldr r1 r5 r6
+  0x00E: 0x114E | LDR  r1, [r5, r6]
+  
+  > ldr r1[r5,r6]
+  0x00E: 0x114E | LDR  r1, [r5, r6]
+  
+  > B   0b110
+  0x05D: 0x4006 | B    0x006 ; (6)
+  
+  > MOV R0, 0x828
+  0x004: 0x8828 | MOV  R0, 0x828 ; (-2008)
+  
+  > MOV r1, -34
+  0x005: 0x9FDE | MOV  R1, 0xFDE ; (-34)
+  
+  > end:BNE eNd
+  0x063: 0x7FFF | BNE  0xFFF ; (-1 -> END)
+  
+  > mov r0 r1 r2
+  Error: line[12]: could not match operand format for mnemonic 'mov':
+  -->  mov r0 r1 r2
+           ^~~~~~~~
+  --- Expected one of the following formats:
+  -----> mov Rd, Rn
+  -----> mov Rd, Flags
+  -----> mov Flags, Rd
+  -----> mov Rd, Imm
+  
+  > r0: mov r0 r1
+  Error: line[3]: illegal label name 'r0', reserved by ISA:
+  -->  r0: mov r0 r1 
+       ^~~~
+  
+  > MOV R3 0x1000
+  Error: line[27]: could not encode 2nd operand '0x1000', hex value has too many nibbles (max = 3):
+  --> MOV R3 0x1000
+             ^~~~~~
+             
+  > ldr r1 r5 r6 ; with -s flag on
+  Error: line[8]: could not match operand format for mnemonic 'ldr':
+  --> ldr r1 r5 r6     
+          ^~~~~~~~
+  --- Expected one of the following formats:
+  -----> ldr Rd, [Rn]
+  -----> ldr Rd, [Rn, Rm]
+  
