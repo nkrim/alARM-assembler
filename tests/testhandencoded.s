@@ -1,4 +1,4 @@
-; Written by Dominic
+; Written by Dominic Quintero
 ; Assembly:       Encoding:
 MOV  R0, 0x4    ; 8004
 MOV  R1, 0x50   ; 9050
