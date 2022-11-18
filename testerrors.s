@@ -14,15 +14,17 @@
 ; add r0 r1 r2 r3
 ; add r0 r1 0x800
 ; mov r3 r8
-; mov r3 0x1000
 ; mov 0x800 r0
 ; not rx r3
 ; not r0r1
 ; b1
 ; r1
+; -foo:
+; halt r0
 
 ; encoder errors
 ; --------------
+; MOV R3 0x1000
 ; mov r3 loop
 ; mov r3 r-1
 ; mov r01 r3
