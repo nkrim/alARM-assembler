@@ -6,6 +6,8 @@ Installation
 ============
 .. code-block:: console
 
+  $ git clone https://github.com/nkrim/alARM-assembler.git
+  $ cd alARM-assembler
   $ make
   
 Usage
@@ -30,13 +32,19 @@ Notes
 
 Tests
 ==========
-Includes two test files: 
+Includes five test files: 
 
 - ``testinsts.s`` which includes every instruction in every format in order to ensure proper encoding.
 - ``testerrors.s`` which should initiate an error on every line of the program, so it starts entirely commented in order to test for specific errors.
+- ``teststrict.s`` which includes strictly formatted instructions and should be tested with the ``-s`` flag set.
+- ``teststricterrors.s`` which should intiate an error on every line only when the ``-s`` flag is set.
+- ``testhandencoded.s`` which has some instructions paired up with their hand-encoded hex in the comments, written by Dominic Quintero.
 
 Examples
 ==========
+
+*The instructions shown below are assembled from larger files, though they are presented here alone with their listing/error output merely for examples. However, interactive assembling in the terminal is a planned feature.*
+
 .. code-block:: console
 
   > ldr r1 r5 r6
@@ -70,7 +78,7 @@ Examples
   > r0: mov r0 r1
   Error: line[3]: illegal label name 'r0', reserved by ISA:
   -->  r0: mov r0 r1 
-       ^~~~
+       ^~~
   
   > MOV R3 0x1000
   Error: line[27]: could not encode 2nd operand '0x1000', hex value has too many nibbles (max = 3):
