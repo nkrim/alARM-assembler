@@ -938,7 +938,7 @@ bool is_reserved_name(const string& str) {
         for(auto it=ISA.begin(); it!=ISA.end(); ++it)
             illegal_label_cache.insert(it->first);
         // registers
-        for(int i=0; i<=WIDTH_TO_BITS(REG); i++)
+        for(unsigned i=0; i<=WIDTH_TO_BITS(REG); i++)
             illegal_label_cache.insert("R"+to_string(i));
         // hard-coded reserved names
         for(auto it=RESERVED_NAMES.begin(); it!=RESERVED_NAMES.end(); ++it)
