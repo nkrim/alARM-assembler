@@ -30,6 +30,10 @@ Notes
 ==========
 - To load or store the ALU flags with the ``MOV`` instruction, you can reference ``Flags`` explicitly as an operand. For example, use ``MOV R0, Flags`` to load ``Flags`` into ``R0`` and use ``MOV Flags, R0`` to store ``R0`` into the ``Flags``. 
 
+Bug Fixes
+==========
+- 11/17/22 9:30pm - fixed a bug that was causing every operand token to display as mnemonic instead in encoder errors.
+
 Tests
 ==========
 Includes five test files: 
