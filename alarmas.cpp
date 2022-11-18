@@ -643,7 +643,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
             inst_raw_buf.push_back(mne);
             for(auto it=opr_m.begin()+1; it!=opr_m.end(); ++it) {
                 inst_buf.push_back(str_to_upper(*it));
-                inst_raw_buf.push_back(mne);
+                inst_raw_buf.push_back(*it);
             }
 
             // push onto instruction list
@@ -798,11 +798,15 @@ bool encode_program(prog_s& prog) {
                     cerr << "Error: line[" << prog.debug_line_nums[i]
                          << "]: could not encode " << ordinal_str(o+1)
                          << " operand '" << opr_str
-                         << "', " 
+                         << "'" 
                          << (parse_decimal 
                                 ? "" 
-                                : ("(" + to_string(parsed) + ") ") )
-                         << "immediate value out of range ["
+                                : (" (" + to_string(parsed) + ")") )
+                         << ", "
+                         << (parse_label
+                                ? "branch offset from label "
+                                : "immediate value ")
+                         << "out of range ["
                          << IMM_MIN << ", " << IMM_MAX << "]:"
                          << endl;
                     inst_error_marker(inst_raw_toks, 1+o);
