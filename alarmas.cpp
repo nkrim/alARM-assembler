@@ -72,6 +72,7 @@ enum I_FMT {
     S_TYPE=0,
     R1_TYPE,
     R2_TYPE,
+    R2NW_TYPE,
     R3_TYPE,
     B_TYPE,
     I_TYPE,
@@ -154,6 +155,7 @@ const array<fmt_config_t, FMT_LEN> FMT_CONFIG = {{
     { },                                    // S-Type
     { {1*REG,REG} },                        // R1-Type
     { {1*REG,REG}, {2*REG,REG} },           // R2-Type
+    { {2*REG,REG}, {0,REG} },               // R2NW-Type
     { {1*REG,REG}, {2*REG,REG}, {0,REG} },  // R3-Type
     { {0,IMM} },                            // B-Type
     { {1*IMM,REG}, {0,IMM} },               // I-Type
@@ -189,7 +191,7 @@ const map<OPCODE, I_FMT> OPC_TO_FMT = {
     { ASR,  R3_TYPE },
     { ROL,  R3_TYPE },
     { ROR,  R3_TYPE },
-    { CMP,  R2_TYPE },
+    { CMP,  R2NW_TYPE },
     { B,    B_TYPE },
     { BEQ,  B_TYPE },
     { BNE,  B_TYPE },
@@ -229,6 +231,8 @@ const array<regex,FMT_LEN> FMT_REGEX = {{
     regex("^(R\\d+)\\s*$", regex::icase),  
     // R2_TYPE
     regex("^(R\\d+)(?:\\s+|\\s*,\\s*)(R\\d+)\\s*$", regex::icase), 
+    // R2NW_TYPE
+    regex("^(R\\d+)(?:\\s+|\\s*,\\s*)(R\\d+)\\s*$", regex::icase), 
     // R3_TYPE
     regex(string("^(R\\d+)(?:\\s+|\\s*,\\s*)")
         + string("(R\\d+)(?:\\s+|\\s*,\\s*)(R\\d+)\\s*$"), regex::icase), 
@@ -255,6 +259,8 @@ const array<regex,FMT_LEN> FMT_REGEX_STRICT = {{
     regex("^(R\\d+)$", regex::icase),  
     // R2_TYPE
     regex("^(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
+    // R2NW_TYPE
+    regex("^(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
     // R3_TYPE
     regex("^(R\\d+)\\s*,\\s*(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
     // B_TYPE
@@ -276,6 +282,7 @@ const array<vector<const char*>,FMT_LEN> FMT_EXPECTED = {{
     { "" },                 // S_TYPE
     { " Rd" },              // R1_TYPE
     { " Rd, Rn" },          // R2_TYPE
+    { " Rn, Rm" },          // R2NW_TYPE
     { " Rd, Rn, Rm" },      // R3_TYPE
     { " Imm", " Label" },   // B_TYPE
     { " Rd, Imm" },         // I_TYPE
