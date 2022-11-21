@@ -160,7 +160,7 @@ const array<fmt_config_t, FMT_LEN> FMT_CONFIG = {{
     { {0,IMM} },                            // B-Type
     { {1*IMM,REG}, {0,IMM} },               // I-Type
     { {1*REG,REG}, {0,NON} },               // FL-Type
-    { {0,NON},     {1*REG,REG} },           // FS-Type
+    { {0,NON},     {2*REG,REG} },           // FS-Type
     { {1*REG,REG}, {2*REG,REG} },           // LS-Type
     { {1*REG,REG}, {2*REG,REG}, {0,REG} },  // LSO-Type
 }};
@@ -287,7 +287,7 @@ const array<vector<const char*>,FMT_LEN> FMT_EXPECTED = {{
     { " Imm", " Label" },   // B_TYPE
     { " Rd, Imm" },         // I_TYPE
     { " Rd, Flags" },       // FL_TYPE
-    { " Flags, Rd" },       // FS_TYPE 
+    { " Flags, Rn" },       // FS_TYPE 
     { " Rd, [Rn]" },        // LS_TYPE
     { " Rd, [Rn, Rm]" },    // LSO_TYPE
 }};
