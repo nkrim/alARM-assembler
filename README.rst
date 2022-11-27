@@ -45,6 +45,7 @@ Includes five test files:
 - ``teststrict.s`` which includes strictly formatted instructions and should be tested with the ``-s`` flag set.
 - ``teststricterrors.s`` which should intiate an error on every line only when the ``-s`` flag is set.
 - ``testhandencoded.s`` which has some instructions paired up with their hand-encoded hex in the comments, written by Dominic Quintero.
+- ``teststress.s`` which has 65536 instructions, enough to fill alARM instruction memory, so it is good for timing performance.
 
 Examples
 ==========
