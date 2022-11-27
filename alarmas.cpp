@@ -5,7 +5,7 @@
  * ------------------------------------------------------------------------- *
  * File: alarmas.cpp
  *  Asssembler that encodes a human-readable alARM program from a `.s` file
- *  into hex machine code that is runnable with `alarmsim`
+ *  into hex machine code that is runnable with an alARM Logisim CPU
  * ************************************************************************* */
 
 #include <iostream>
@@ -373,8 +373,11 @@ void print_help();
 // converts a string to uppercase
 string str_to_upper(const string& str);
 
+// trims whitespace from head of string
+string& trim_head(string& str);
+
 // trims whitespace from tail of string
-void trim_tail(string& str);
+string& trim_tail(string& str);
 
 // converts a number to an ordinal string
 string ordinal_str(unsigned n);
@@ -482,9 +485,9 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
     string label_raw_buf;
     string line_buf;
     string mne;
-    string opr;
+    string oprs;
     smatch m;
-    smatch opr_m;
+    smatch oprs_m;
     inst_tokens_t inst_buf;
     inst_tokens_t inst_raw_buf;
     sregex_iterator reit_begin;
@@ -495,6 +498,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
     // parse file, line by line
     // ---------------------------------------------------------------------
     while(getline(fin, line_buf)) {
+        trim_head(trim_tail(line_buf));
         file_line++;
 
         // match line with instruction extractor
@@ -601,18 +605,21 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
 
             // extract operands
             // -------------------------------------------------------------
-            opr = m[3];
-            str_to_upper(opr);
-            trim_tail(opr);
+            oprs = m[3];
+            trim_tail(oprs);
+
+            // iterate over and test all regex for instruction format
             bool found_matching_fmt = false;
             for(auto it=mne_opcodes.begin(); 
                     !found_matching_fmt && it!=mne_opcodes.end();
                     ++it) {
+                // choose between strict and relaxed parsing
                 regex fmt_re = strict_parsing 
                     ? FMT_REGEX_STRICT[OPC_TO_FMT.at(*it)] 
                     : FMT_REGEX[OPC_TO_FMT.at(*it)];
 
-                if(regex_match(opr, opr_m, fmt_re)) {
+                // perform regex match
+                if(regex_match(oprs, oprs_m, fmt_re)) {
                     found_matching_fmt = true;
                     inst_opcode = *it;
                 }
@@ -624,7 +631,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
                      << "could not match operand format for mnemonic '"
                      << mne << "':"
                      << endl;
-                line_error_marker(line_buf, m.position(3), opr.length());
+                line_error_marker(line_buf, m.position(3), oprs.length());
                 cerr << "--- Expected " 
                      << (mne_opcodes.size() > 1 
                         ? "one of the following formats:"
@@ -648,7 +655,7 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
             inst_buf.push_back(mne_key);
             inst_raw_buf.clear();
             inst_raw_buf.push_back(mne);
-            for(auto it=opr_m.begin()+1; it!=opr_m.end(); ++it) {
+            for(auto it=oprs_m.begin()+1; it!=oprs_m.end(); ++it) {
                 inst_buf.push_back(str_to_upper(*it));
                 inst_raw_buf.push_back(*it);
             }
@@ -825,6 +832,7 @@ bool encode_program(prog_s& prog) {
                 
                 // replace inst token with sanitized hex version
                 inst_toks[1+o] = "0x" + to_hex_string(opr_buf, IMM)
+                    + (parse_label ? "    " : "")
                     + " ; (" + to_string(parsed) 
                     + (parse_label ? (" -> " + opr_str_key) : "") + ")";
             }
@@ -1012,12 +1020,22 @@ string str_to_upper(const string& str) {
     return res.str();
 }
 
+// trims whitespace from head of string
+string& trim_head(string& str) {
+    int i = 0;
+    while(i<str.size() && isspace(str[i]))
+        i++;
+    str = str.substr(i);
+    return str;
+}
+
 // trims whitespace from tail of string
-void trim_tail(string& str) {
+string& trim_tail(string& str) {
     int i = str.size();
     while(i>0 && isspace(str[i-1]))
         i--;
     str.resize(i);
+    return str;
 }
 
 // converts a number to an ordinal string
