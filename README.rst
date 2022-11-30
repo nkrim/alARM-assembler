@@ -35,6 +35,7 @@ Bug Fixes
 - 11/17/22 9:30pm - fixed a bug that was causing every operand token to display as mnemonic instead in encoder errors.
 - 11/19/22 8:30pm - fixed ``CMP`` encoding to use Rn and Rm spaces instead of Rd and Rn.
 - 11/20/22 6:45pm - fixed ``MOV Flags, Rn`` encoding to use Rn instead of Rd.
+- 11/29/22 4:00pm - fixed negative immediate parsing for in strict mode.
 
 Tests
 ==========
