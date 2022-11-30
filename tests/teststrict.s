@@ -2,6 +2,7 @@
     HALT
     MOV     r7,     r3
     MOV     R0,     0x828
+    mov     r0,     -1
 loop_1:loop_2: loop_3:
     mov     r2,     flags
     MOV     FLAGS,  r4
@@ -37,4 +38,5 @@ a:  ASR     r1,     r2,     r3
     b       0x800
     b       0b100000000000
     b 1
+    b -1
 end:BNE eNd

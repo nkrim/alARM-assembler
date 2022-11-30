@@ -228,7 +228,7 @@ const array<regex,FMT_LEN> FMT_REGEX = {{
     // S_TYPE
     regex("^\\s*$", regex::icase),
     // R1_TYPE
-    regex("^(R\\d+)\\s*$", regex::icase),  
+    regex("^(R\\d+)\\s*$", regex::icase),
     // R2_TYPE
     regex("^(R\\d+)(?:\\s+|\\s*,\\s*)(R\\d+)\\s*$", regex::icase), 
     // R2NW_TYPE
@@ -264,9 +264,9 @@ const array<regex,FMT_LEN> FMT_REGEX_STRICT = {{
     // R3_TYPE
     regex("^(R\\d+)\\s*,\\s*(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
     // B_TYPE
-    regex("^(\\w+)$", regex::icase), 
+    regex("^([-\\w]+)$", regex::icase), 
     // I_TYPE
-    regex("^(R\\d+)\\s*,\\s*(\\w+)$", regex::icase), 
+    regex("^(R\\d+)\\s*,\\s*([-\\w]+)$", regex::icase), 
     // FL_TYPE
     regex("^(R\\d+)\\s*,\\s*(FLAGS)$", regex::icase),
     // FS_TYPE 

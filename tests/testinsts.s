@@ -98,4 +98,5 @@ a:  ASR     r1,     r2,     r3
     b       0x800
     b       0b100000000000
     b 1
+    b -1
 end:BNE eNd
