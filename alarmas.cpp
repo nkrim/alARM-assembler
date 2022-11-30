@@ -832,7 +832,7 @@ bool encode_program(prog_s& prog) {
                 
                 // replace inst token with sanitized hex version
                 inst_toks[1+o] = "0x" + to_hex_string(opr_buf, IMM)
-                    + (parse_label ? "    " : "")
+                    + (inst_fmt==B_TYPE ? "    " : "")
                     + " ; (" + to_string(parsed) 
                     + (parse_label ? (" -> " + opr_str_key) : "") + ")";
             }
