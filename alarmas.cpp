@@ -254,28 +254,28 @@ const array<regex,FMT_LEN> FMT_REGEX = {{
 
 const array<regex,FMT_LEN> FMT_REGEX_STRICT = {{
     // S_TYPE
-    regex("^$", regex::icase),
+    regex("^\\s*$", regex::icase),
     // R1_TYPE
-    regex("^(R\\d+)$", regex::icase),  
+    regex("^(R\\d+)\\s*$", regex::icase),  
     // R2_TYPE
-    regex("^(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
+    regex("^(R\\d+)\\s*,\\s*(R\\d+)\\s*$", regex::icase), 
     // R2NW_TYPE
-    regex("^(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
+    regex("^(R\\d+)\\s*,\\s*(R\\d+)\\s*$", regex::icase), 
     // R3_TYPE
-    regex("^(R\\d+)\\s*,\\s*(R\\d+)\\s*,\\s*(R\\d+)$", regex::icase), 
+    regex("^(R\\d+)\\s*,\\s*(R\\d+)\\s*,\\s*(R\\d+)\\s*$", regex::icase), 
     // B_TYPE
-    regex("^([-\\w]+)$", regex::icase), 
+    regex("^([-\\w]+)\\s*$", regex::icase), 
     // I_TYPE
-    regex("^(R\\d+)\\s*,\\s*([-\\w]+)$", regex::icase), 
+    regex("^(R\\d+)\\s*,\\s*([-\\w]+)\\s*$", regex::icase), 
     // FL_TYPE
-    regex("^(R\\d+)\\s*,\\s*(FLAGS)$", regex::icase),
+    regex("^(R\\d+)\\s*,\\s*(FLAGS)\\s*$", regex::icase),
     // FS_TYPE 
-    regex("^(FLAGS)\\s*,\\s*(R\\d+)$", regex::icase), 
+    regex("^(FLAGS)\\s*,\\s*(R\\d+)\\s*$", regex::icase), 
     // LS_TYPE
-    regex("^(R\\d+)\\s*,\\s*\\[\\s*(R\\d+)\\s*\\]$", regex::icase), 
+    regex("^(R\\d+)\\s*,\\s*\\[\\s*(R\\d+)\\s*\\]\\s*$", regex::icase), 
     // LSO_TYPE
     regex(string("^(R\\d+)\\s*,\\s*")
-        + string("\\[\\s*(R\\d+)\\s*,\\s*(R\\d+)\\s*\\]$"), regex::icase)
+        + string("\\[\\s*(R\\d+)\\s*,\\s*(R\\d+)\\s*\\]\\s*$"), regex::icase)
 }};
 
 const array<vector<const char*>,FMT_LEN> FMT_EXPECTED = {{
@@ -292,6 +292,10 @@ const array<vector<const char*>,FMT_LEN> FMT_EXPECTED = {{
     { " Rd, [Rn, Rm]" },    // LSO_TYPE
 }};
 
+const map<string, string> PSUEDO_ISA = {
+    {"CLC",     "AND R0, R0, R0"},
+};
+
 const vector<string> RESERVED_NAMES = {
     "FLAGS"
 };
@@ -301,7 +305,7 @@ const vector<string> RESERVED_NAMES = {
  * Regular Expression Definitions
  * ========================================================================= */
 const regex extract_inst_re(
-    "^((?:\\s*\\w*:)*)\\s*(\\w+)?\\s*([^;]*)\\s*(?:;.*)?$");
+    "^((?:\\s*\\w*:)*)\\s*(\\w+)?\\s*([^;]*)\\s*(;.*)?$");
 const regex label_re("(\\w*):");
 const regex dec_re("^(-?\\d+)$");
 const regex udec_re("^(\\d+)$");
@@ -589,6 +593,52 @@ bool parse_program(ifstream& fin, prog_s& prog, bool strict_parsing) {
         else {
             mne = m[2].str();
             string mne_key = str_to_upper(mne);
+
+            // check for psuedo-instruction
+            // -------------------------------------------------------------
+            if(PSUEDO_ISA.count(mne_key)) {
+                // error: invalid format for psuedo-instruction
+                //        - should be empty string
+                oprs = m[3].str();
+                trim_tail(oprs);
+                if(oprs.size() > 0) {
+                    cerr << "Error: line[" << file_line << "]: "
+                         << "invalid format for psuedoinstruction '"
+                         << mne << "', expected no operands:"
+                         << endl;
+                    line_error_marker(line_buf, 
+                        m.position(3), m[3].length());
+                    return false;
+                }
+
+                // replace line_buf and re-extract
+                string comment = m[4].str();
+                string psuedo_buf = "";
+                if(m[1].length())
+                    psuedo_buf += m[1].str() + " ";
+                psuedo_buf = PSUEDO_ISA.at(mne_key) + " ; (from "
+                            + mne_key + ")";
+                if(m[4].length()) {
+                    string comment = m[4].str().substr(1);
+                    trim_head(comment);
+                    psuedo_buf += " " + comment;
+                }
+                line_buf = psuedo_buf;
+
+                // error: failed psuedo-instruction conversion
+                if(!regex_match(line_buf, m, extract_inst_re)) {
+                    cerr << "Error: line[" << file_line << "]: "
+                         << "psuedo-instruction conversion failed, "
+                         << "unknown cause, report to maintainer:"
+                         << endl;
+                    line_error_marker(line_buf, 0, line_buf.size());
+                    return false;
+                }
+
+                // re-set mne and mne_key
+                mne = m[2].str();
+                mne_key = str_to_upper(mne);
+            }
 
             // error: invalid mnemonic
             if(ISA.count(mne_key) == 0) {
