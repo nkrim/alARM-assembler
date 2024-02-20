@@ -110,13 +110,13 @@ Non-ALU Operations
      - Load value from memory address ``Rn+Rm`` into ``Rd``
    * -
      - ``Rd, [Rn]``
-     - ... ``Rm=0`
+     - ... ``Rm=0``
    * - ``STR``
      - ``Rd, [Rn, Rm]``
      - Store value from ``Rd`` into data memory at address ``Rn+Rm``
    * -
      - ``Rd, [Rn]``
-     - ... ``Rm=0`
+     - ... ``Rm=0``
    * - ``B``
      - ``Imm``
      - Unconditional relative branch, set program counter to ``PC+1+Imm``
